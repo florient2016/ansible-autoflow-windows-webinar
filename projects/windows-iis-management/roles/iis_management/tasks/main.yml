@@ -153,18 +153,18 @@
 # Configuration du port d'écoute et de la liaison du site Default Web Site.
 # On utilise win_shell + appcmd pour la configuration avancée du site.
 # ---------------------------------------------------------------------------
-- name: "⚙️ [IIS] Configurer les paramètres du site par défaut"
-  ansible.windows.win_shell: |
-    # Configurer le port d'écoute du site par défaut
-    & "$env:SystemRoot\system32\inetsrv\appcmd.exe" set site "{{ iis_site_name }}" `
-      /bindings:"http/*:{{ iis_site_port }}:"
-    Write-Output "Site configuré : {{ iis_site_name }} sur le port {{ iis_site_port }}"
-  register: iis_config_result
-  changed_when: "'Site configuré' in iis_config_result.stdout"
-
-- name: "📋 [IIS] Résultat de la configuration du site"
-  ansible.builtin.debug:
-    msg: "{{ iis_config_result.stdout }}"
+#- name: "⚙️ [IIS] Configurer les paramètres du site par défaut"
+#  ansible.windows.win_shell: |
+#    # Configurer le port d'écoute du site par défaut
+#    & "$env:SystemRoot\system32\inetsrv\appcmd.exe" set site "{{ iis_site_name }}" `
+#      /bindings:"http/*:{{ iis_site_port }}:"
+#    Write-Output "Site configuré : {{ iis_site_name }} sur le port {{ iis_site_port }}"
+#  register: iis_config_result
+#  changed_when: "'Site configuré' in iis_config_result.stdout"
+#
+#- name: "📋 [IIS] Résultat de la configuration du site"
+#  ansible.builtin.debug:
+#    msg: "{{ iis_config_result.stdout }}"
 
 # ---------------------------------------------------------------------------
 # ÉTAPE 10 : Vérification que le site web répond correctement
