@@ -44,26 +44,26 @@
 # ÉTAPE 3 : Désinstallation d'IIS (si force_reinstall est activé)
 # Désinstalle IIS et tous ses sous-composants pour repartir sur une base propre.
 # ---------------------------------------------------------------------------
-- name: "🗑️ [IIS] Désinstaller IIS et ses composants"
-  ansible.windows.win_feature:
-    name:
-      - Web-Server          # Serveur Web IIS (rôle principal)
-      - Web-Common-Http     # Fonctionnalités HTTP communes
-      - Web-Default-Doc     # Document par défaut
-      - Web-Dir-Browsing    # Navigation dans les répertoires
-      - Web-Http-Errors     # Erreurs HTTP
-      - Web-Static-Content  # Contenu statique
-    state: absent
-    #remove_payloads: false  # Conserver les binaires pour une réinstallation rapide
-  when:
-    - iis_force_reinstall | bool
-    - not iis_check_result.changed    # Seulement si IIS était déjà installé
-  register: iis_uninstall_result
-
-- name: "✅ [IIS] Confirmation de désinstallation"
-  ansible.builtin.debug:
-    msg: "IIS désinstallé avec succès"
-  when: iis_uninstall_result.changed is defined and iis_uninstall_result.changed
+#- name: "🗑️ [IIS] Désinstaller IIS et ses composants"
+#  ansible.windows.win_feature:
+#    name:
+#      - Web-Server          # Serveur Web IIS (rôle principal)
+#      - Web-Common-Http     # Fonctionnalités HTTP communes
+#      - Web-Default-Doc     # Document par défaut
+#      - Web-Dir-Browsing    # Navigation dans les répertoires
+#      - Web-Http-Errors     # Erreurs HTTP
+#      - Web-Static-Content  # Contenu statique
+#    state: absent
+#    #remove_payloads: false  # Conserver les binaires pour une réinstallation rapide
+#  when:
+#    - iis_force_reinstall | bool
+#    - not iis_check_result.changed    # Seulement si IIS était déjà installé
+#  register: iis_uninstall_result
+#
+#- name: "✅ [IIS] Confirmation de désinstallation"
+#  ansible.builtin.debug:
+#    msg: "IIS désinstallé avec succès"
+#  when: iis_uninstall_result.changed is defined and iis_uninstall_result.changed
 
 # ---------------------------------------------------------------------------
 # ÉTAPE 4 : Installation propre d'IIS avec les composants nécessaires
