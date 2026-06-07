@@ -144,7 +144,7 @@
 - name: "🌐 [IIS] Déployer la page web par défaut (index.html)"
   ansible.windows.win_template:
     src: index.html.j2          # Template Jinja2 dans le dossier templates/
-    dest: "{{ iis_site_root }}\\index.html"
+    dest: "{{ iis_site_root }}\\autoflow.html"
   register: page_deploy_result
   notify: Restart IIS Service   # Handler déclenché si le fichier change
 

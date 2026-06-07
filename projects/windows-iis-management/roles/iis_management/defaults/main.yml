@@ -28,10 +28,10 @@ iis_site_root: 'C:\inetpub\wwwroot'
 # ---------------------------------------------------------------------------
 
 # Titre affiché dans l'onglet du navigateur et en en-tête
-iis_page_title: "🚀 Ansible AAP — Webinar Windows"
+iis_page_title: "🚀 Autoflow Automation — Webinar Windows"
 
 # Message principal affiché sur la page
-iis_page_message: "IIS déployé et configuré automatiquement par Ansible Automation Platform !"
+iis_page_message: "IIS déployé et configuré automatiquement par Autoflow Automation Platform !"
 
 # ---------------------------------------------------------------------------
 # Options d'installation
