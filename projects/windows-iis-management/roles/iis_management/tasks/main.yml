@@ -99,12 +99,12 @@
 # ÉTAPE 5 : Redémarrage si nécessaire après installation des fonctionnalités
 # Certaines fonctionnalités Windows nécessitent un redémarrage.
 # ---------------------------------------------------------------------------
-- name: "🔄 [IIS] Redémarrer le serveur si nécessaire"
-  ansible.windows.win_reboot:
-    reboot_timeout: 300    # Attendre jusqu'à 5 minutes pour le redémarrage
-    post_reboot_delay: 30  # Attendre 30s après redémarrage avant de continuer
-    msg: "Redémarrage requis après installation IIS"
-  when: iis_install_result.reboot_required | bool
+#- name: "🔄 [IIS] Redémarrer le serveur si nécessaire"
+#  ansible.windows.win_reboot:
+#    reboot_timeout: 300    # Attendre jusqu'à 5 minutes pour le redémarrage
+#    post_reboot_delay: 30  # Attendre 30s après redémarrage avant de continuer
+#    msg: "Redémarrage requis après installation IIS"
+#  when: iis_install_result.reboot_required | bool
 
 # ---------------------------------------------------------------------------
 # ÉTAPE 6 : Démarrage et configuration du service W3SVC
