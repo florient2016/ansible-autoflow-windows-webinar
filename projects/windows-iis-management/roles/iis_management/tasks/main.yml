@@ -134,7 +134,28 @@
   ansible.windows.win_file:
     path: "{{ iis_site_root }}"
     state: directory
+# ---------------------------------------------------------------------------
+# ÉTAPE 8b : Créer le DefaultAppPool s'il n'existe pas
+# ---------------------------------------------------------------------------
+- name: "⚙️ [IIS] Créer le DefaultAppPool"
+  ansible.windows.win_shell: |
+    Import-Module WebAdministration
+    if (-not (Test-Path "IIS:\AppPools\DefaultAppPool")) {
+        New-WebAppPool -Name "DefaultAppPool"
+        Write-Output "AppPool cree : DefaultAppPool"
+    } else {
+        Write-Output "AppPool deja existant : DefaultAppPool"
+    }
+  register: apppool_result
+  changed_when: "'AppPool cree' in apppool_result.stdout"
 
+- name: "▶️ [IIS] Démarrer le DefaultAppPool"
+  ansible.windows.win_shell: |
+    Import-Module WebAdministration
+    Start-WebAppPool -Name "DefaultAppPool"
+    Write-Output "AppPool demarre"
+  changed_when: false
+  
 # ---------------------------------------------------------------------------
 # ÉTAPE 8 : Déploiement de la page HTML par défaut
 # On utilise un template Jinja2 pour générer une page HTML personnalisée.
