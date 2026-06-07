@@ -1,0 +1,76 @@
+================================================================================
+  RAPPORT SYSTÈME WINDOWS — Généré par Ansible Automation Platform
+================================================================================
+  Date de génération : {{ ansible_date_time.date }} à {{ ansible_date_time.time }}
+  Généré depuis      : Ansible Automation Platform (AAP)
+  Playbook           : windows-system-baseline
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  INFORMATIONS SYSTÈME                                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Hostname           : {{ ansible_hostname }}
+  FQDN               : {{ ansible_fqdn | default(ansible_hostname) }}
+  Domaine            : {{ ansible_domain | default('WORKGROUP') }}
+  Adresses IP        : {{ ansible_ip_addresses | join(', ') }}
+  Système            : {{ ansible_distribution }}
+  Version OS         : {{ ansible_distribution_version }}
+  Architecture       : {{ ansible_architecture }}
+  PowerShell         : {{ ansible_powershell_version }}
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RESSOURCES MATÉRIELLES                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  RAM totale         : {{ ansible_memtotal_mb }} MB ({{ (ansible_memtotal_mb / 1024) | round(1) }} GB)
+  RAM libre          : {{ ansible_memfree_mb }} MB ({{ (ansible_memfree_mb / 1024) | round(1) }} GB)
+  Processeurs        : {{ ansible_processor_count }} socket(s), {{ ansible_processor_cores }} cœur(s)
+
+{% if system_info is defined and system_info.disks is defined %}
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  DISQUES                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+{% for disk in system_info.disks %}
+  Lecteur {{ disk.DeviceID | default('?') }}
+    Taille totale    : {{ disk.SizeGB | default('N/A') }} GB
+    Espace libre     : {{ disk.FreeGB | default('N/A') }} GB
+    Utilisation      : {{ disk.UsedPct | default('N/A') }} %
+
+{% endfor %}
+{% endif %}
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CONFIGURATION ANSIBLE BASELINE                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Utilisateur dédié  : {{ baseline_admin_username }}
+  Dossier travail    : {{ baseline_automation_folder }}
+  Chocolatey         : {{ 'Installé' if baseline_install_chocolatey else 'Non installé' }}
+
+  Paquets installés  :
+{% for pkg in baseline_choco_packages %}
+    [✓] {{ pkg }}
+{% endfor %}
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RÈGLES FIREWALL ANSIBLE                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  [✓] Ansible - ICMP Echo Request    (ICMP ping - port any)
+  [✓] Ansible - WinRM HTTP           (TCP port 5985)
+  [✓] Ansible - WinRM HTTPS          (TCP port 5986)
+  [{{ '✓' if baseline_enable_rdp_firewall else '✗' }}] Ansible - Remote Desktop          (TCP port 3389)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RÉSUMÉ                                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Statut Baseline    : ✅ SUCCÈS
+  Idempotent         : Oui — peut être rejoué sans risque
+  Prochaine exécution: Planifier dans AAP pour vérification périodique
+
+================================================================================
+  Rapport généré automatiquement par Ansible Automation Platform
+  Ne pas modifier manuellement — sera écrasé à la prochaine exécution
+================================================================================

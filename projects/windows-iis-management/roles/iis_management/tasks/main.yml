@@ -1,0 +1,191 @@
+# =============================================================================
+# roles/iis_management/tasks/main.yml
+# Tâches principales du rôle de gestion IIS
+# =============================================================================
+# Ce fichier orchestre toutes les étapes de gestion IIS :
+#   1. Vérification de l'état actuel
+#   2. Désinstallation conditionnelle
+#   3. Installation propre
+#   4. Configuration du service
+#   5. Déploiement de la page web
+#   6. Validation
+# =============================================================================
+
+---
+# ---------------------------------------------------------------------------
+# ÉTAPE 1 : Vérification de l'état actuel d'IIS
+# Avant tout changement, on vérifie ce qui est déjà installé.
+# ---------------------------------------------------------------------------
+- name: "🔍 [IIS] Vérifier si IIS (W3SVC) est installé"
+  ansible.windows.win_feature:
+    name: Web-Server
+    state: present
+  check_mode: true    # Mode check : ne modifie rien, rapporte l'état actuel
+  register: iis_check_result
+
+- name: "📋 [IIS] Afficher l'état actuel d'IIS"
+  ansible.builtin.debug:
+    msg:
+      - "IIS installé : {{ not iis_check_result.changed }}"
+      - "Changement nécessaire : {{ iis_check_result.changed }}"
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 2 : Arrêt du service IIS (si en cours d'exécution)
+# On arrête W3SVC proprement avant toute modification de la fonctionnalité.
+# ---------------------------------------------------------------------------
+- name: "⏹️ [IIS] Arrêter le service IIS si actif"
+  ansible.windows.win_service:
+    name: W3SVC
+    state: stopped
+  when: not iis_check_result.changed    # Seulement si IIS est déjà installé
+  ignore_errors: true                    # Ne pas échouer si le service n'existe pas
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 3 : Désinstallation d'IIS (si force_reinstall est activé)
+# Désinstalle IIS et tous ses sous-composants pour repartir sur une base propre.
+# ---------------------------------------------------------------------------
+- name: "🗑️ [IIS] Désinstaller IIS et ses composants"
+  ansible.windows.win_feature:
+    name:
+      - Web-Server          # Serveur Web IIS (rôle principal)
+      - Web-Common-Http     # Fonctionnalités HTTP communes
+      - Web-Default-Doc     # Document par défaut
+      - Web-Dir-Browsing    # Navigation dans les répertoires
+      - Web-Http-Errors     # Erreurs HTTP
+      - Web-Static-Content  # Contenu statique
+    state: absent
+    remove_payloads: false  # Conserver les binaires pour une réinstallation rapide
+  when:
+    - iis_force_reinstall | bool
+    - not iis_check_result.changed    # Seulement si IIS était déjà installé
+  register: iis_uninstall_result
+
+- name: "✅ [IIS] Confirmation de désinstallation"
+  ansible.builtin.debug:
+    msg: "IIS désinstallé avec succès"
+  when: iis_uninstall_result.changed is defined and iis_uninstall_result.changed
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 4 : Installation propre d'IIS avec les composants nécessaires
+# Installation du serveur Web IIS avec les fonctionnalités standard.
+# include_management_tools: true installe aussi le gestionnaire IIS (GUI).
+# ---------------------------------------------------------------------------
+- name: "📦 [IIS] Installer IIS et les composants Web"
+  ansible.windows.win_feature:
+    name:
+      - Web-Server                  # Rôle principal IIS
+      - Web-Common-Http             # Fonctionnalités HTTP de base
+      - Web-Default-Doc             # Gestion du document par défaut (index.html)
+      - Web-Dir-Browsing            # Navigation de répertoire (utile pour les démos)
+      - Web-Http-Errors             # Pages d'erreur HTTP personnalisables
+      - Web-Static-Content          # Servir des fichiers statiques (HTML, CSS, JS)
+      - Web-Http-Logging            # Journalisation des accès HTTP
+      - Web-Stat-Compression        # Compression statique des réponses
+      - Web-Filtering               # Filtrage des requêtes (sécurité)
+      - Web-Mgmt-Console            # Console de gestion IIS (GUI)
+      - Web-Scripting-Tools         # Outils de script (appcmd)
+    state: present
+    include_management_tools: true  # Installer le gestionnaire IIS
+  register: iis_install_result
+
+- name: "📋 [IIS] Résultat de l'installation"
+  ansible.builtin.debug:
+    msg:
+      - "Installation réussie : {{ iis_install_result.success }}"
+      - "Redémarrage requis   : {{ iis_install_result.reboot_required }}"
+      - "Changement effectué  : {{ iis_install_result.changed }}"
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 5 : Redémarrage si nécessaire après installation des fonctionnalités
+# Certaines fonctionnalités Windows nécessitent un redémarrage.
+# ---------------------------------------------------------------------------
+- name: "🔄 [IIS] Redémarrer le serveur si nécessaire"
+  ansible.windows.win_reboot:
+    reboot_timeout: 300    # Attendre jusqu'à 5 minutes pour le redémarrage
+    post_reboot_delay: 30  # Attendre 30s après redémarrage avant de continuer
+    msg: "Redémarrage requis après installation IIS"
+  when: iis_install_result.reboot_required | bool
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 6 : Démarrage et configuration du service W3SVC
+# On s'assure que le service IIS (W3SVC) est démarré et configuré pour
+# démarrer automatiquement au boot.
+# ---------------------------------------------------------------------------
+- name: "▶️ [IIS] Démarrer le service IIS (W3SVC)"
+  ansible.windows.win_service:
+    name: W3SVC
+    state: started
+    start_mode: auto    # Démarrage automatique au boot
+  register: iis_service_result
+
+- name: "📋 [IIS] Statut du service W3SVC"
+  ansible.builtin.debug:
+    msg:
+      - "Service    : {{ iis_service_result.name }}"
+      - "État       : {{ iis_service_result.state }}"
+      - "Démarrage  : {{ iis_service_result.start_mode }}"
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 7 : Création du répertoire racine du site web
+# Création du répertoire wwwroot qui hébergera les fichiers HTML.
+# win_file est idempotent : ne fait rien si le dossier existe déjà.
+# ---------------------------------------------------------------------------
+- name: "📁 [IIS] Créer le répertoire racine du site"
+  ansible.windows.win_file:
+    path: "{{ iis_site_root }}"
+    state: directory
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 8 : Déploiement de la page HTML par défaut
+# On utilise un template Jinja2 pour générer une page HTML personnalisée.
+# Le template est dans roles/iis_management/templates/index.html.j2
+# Les variables (titre, message...) sont définies dans defaults/main.yml
+# ---------------------------------------------------------------------------
+- name: "🌐 [IIS] Déployer la page web par défaut (index.html)"
+  ansible.windows.win_template:
+    src: index.html.j2          # Template Jinja2 dans le dossier templates/
+    dest: "{{ iis_site_root }}\\index.html"
+  register: page_deploy_result
+  notify: Restart IIS Service   # Handler déclenché si le fichier change
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 9 : Configuration du site IIS par défaut
+# Configuration du port d'écoute et de la liaison du site Default Web Site.
+# On utilise win_shell + appcmd pour la configuration avancée du site.
+# ---------------------------------------------------------------------------
+- name: "⚙️ [IIS] Configurer les paramètres du site par défaut"
+  ansible.windows.win_shell: |
+    # Configurer le port d'écoute du site par défaut
+    & "$env:SystemRoot\system32\inetsrv\appcmd.exe" set site "{{ iis_site_name }}" `
+      /bindings:"http/*:{{ iis_site_port }}:"
+    Write-Output "Site configuré : {{ iis_site_name }} sur le port {{ iis_site_port }}"
+  register: iis_config_result
+  changed_when: "'Site configuré' in iis_config_result.stdout"
+
+- name: "📋 [IIS] Résultat de la configuration du site"
+  ansible.builtin.debug:
+    msg: "{{ iis_config_result.stdout }}"
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 10 : Vérification que le site web répond correctement
+# Test HTTP local depuis le serveur Windows pour valider le déploiement.
+# win_uri est l'équivalent Windows du module uri.
+# ---------------------------------------------------------------------------
+- name: "🔍 [IIS] Vérifier que le site web répond"
+  ansible.windows.win_uri:
+    url: "http://{{ inventory_hostname }}:{{ iis_site_port }}"
+    method: GET
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: http_check
+  retries: 5        # Retry car IIS peut mettre quelques secondes à démarrer
+  delay: 5
+  until: http_check.status_code is defined and http_check.status_code == 200
+
+- name: "✅ [IIS] Le site web répond correctement"
+  ansible.builtin.debug:
+    msg:
+      - "URL testée    : http://{{ inventory_hostname }}:{{ iis_site_port }}"
+      - "Code HTTP     : {{ http_check.status_code }}"
+      - "Contenu reçu  : {{ http_check.content | truncate(100) }}"

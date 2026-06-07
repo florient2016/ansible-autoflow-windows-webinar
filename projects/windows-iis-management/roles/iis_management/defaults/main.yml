@@ -1,0 +1,57 @@
+# =============================================================================
+# roles/iis_management/defaults/main.yml
+# Variables par défaut du rôle iis_management
+# =============================================================================
+# Ces variables ont les priorités les plus basses dans Ansible.
+# Elles peuvent être surchargées par :
+#   - group_vars / host_vars
+#   - les vars du playbook
+#   - les Extra Variables dans AAP (priorité la plus haute)
+# =============================================================================
+
+---
+# ---------------------------------------------------------------------------
+# Configuration du site IIS
+# ---------------------------------------------------------------------------
+
+# Nom du site IIS dans le gestionnaire
+iis_site_name: "Default Web Site"
+
+# Port d'écoute HTTP
+iis_site_port: 80
+
+# Répertoire racine du site (wwwroot)
+iis_site_root: 'C:\inetpub\wwwroot'
+
+# ---------------------------------------------------------------------------
+# Contenu de la page web déployée
+# ---------------------------------------------------------------------------
+
+# Titre affiché dans l'onglet du navigateur et en en-tête
+iis_page_title: "🚀 Ansible AAP — Webinar Windows"
+
+# Message principal affiché sur la page
+iis_page_message: "IIS déployé et configuré automatiquement par Ansible Automation Platform !"
+
+# ---------------------------------------------------------------------------
+# Options d'installation
+# ---------------------------------------------------------------------------
+
+# Forcer la désinstallation puis réinstallation d'IIS
+# true  : désinstaller IIS s'il est présent, puis réinstaller (idéal pour démonstration)
+# false : installer IIS seulement s'il n'est pas déjà présent (production)
+iis_force_reinstall: true
+
+# Composants IIS à installer (liste des fonctionnalités Windows)
+iis_features:
+  - Web-Server
+  - Web-Common-Http
+  - Web-Default-Doc
+  - Web-Dir-Browsing
+  - Web-Http-Errors
+  - Web-Static-Content
+  - Web-Http-Logging
+  - Web-Stat-Compression
+  - Web-Filtering
+  - Web-Mgmt-Console
+  - Web-Scripting-Tools

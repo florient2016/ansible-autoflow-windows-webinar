@@ -1,0 +1,27 @@
+# =============================================================================
+# requirements.yml — Collections Ansible requises
+# =============================================================================
+# Pour installer toutes les collections :
+#   ansible-galaxy collection install -r requirements.yml
+#
+# Dans Ansible Automation Platform, ces collections doivent être présentes
+# dans l'Execution Environment (EE) utilisé par les Job Templates.
+# =============================================================================
+
+---
+collections:
+  # Collection principale Windows — modules core (win_ping, win_service, etc.)
+  - name: ansible.windows
+    version: ">=2.0.0"
+
+  # Collection communautaire Windows — modules avancés (win_iis_*, win_user, etc.)
+  - name: community.windows
+    version: ">=2.0.0"
+
+  # Collection Chocolatey — gestionnaire de paquets Windows
+  - name: chocolatey.chocolatey
+    version: ">=1.4.0"
+
+  # Collection POSIX utilitaires (pour certains modules utilitaires)
+  - name: ansible.posix
+    version: ">=1.5.0"

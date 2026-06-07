@@ -1,0 +1,68 @@
+# =============================================================================
+# projects/windows-system-baseline/playbook.yml
+# Projet 3 : Configuration baseline système Windows Server
+# =============================================================================
+# Ce playbook configure une base minimale sécurisée sur un serveur Windows :
+#   1. Création d'un utilisateur local d'administration dédié à l'automatisation
+#   2. Création d'un répertoire de travail Ansible
+#   3. Installation et vérification de Chocolatey (gestionnaire de paquets)
+#   4. Installation des outils de base (git, notepad++, 7zip)
+#   5. Configuration de règles firewall utiles
+#   6. Génération d'un rapport système complet
+#
+# Ce playbook est IDEMPOTENT : peut être exécuté plusieurs fois sans risque.
+#
+# Usage :
+#   ansible-playbook -i inventories/dev/hosts.yml \
+#     projects/windows-system-baseline/playbook.yml
+# =============================================================================
+
+---
+- name: "🖥️ Configuration Baseline Windows Server"
+  hosts: all
+  gather_facts: true
+
+  # Les variables par défaut sont dans roles/system_baseline/defaults/main.yml
+  # Surcharger via Extra Variables dans AAP ou -e en ligne de commande
+
+  pre_tasks:
+    # -------------------------------------------------------------------------
+    # Vérification préalable : l'hôte doit être accessible et être Windows
+    # -------------------------------------------------------------------------
+    - name: "🔍 Vérifier la connectivité avant le baseline"
+      ansible.windows.win_ping:
+      register: pre_check
+
+    - name: "📋 Informations sur le système cible"
+      ansible.builtin.debug:
+        msg:
+          - "Démarrage du baseline sur : {{ ansible_hostname }}"
+          - "OS                        : {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture              : {{ ansible_architecture }}"
+          - "RAM disponible            : {{ ansible_memtotal_mb }} MB"
+
+  roles:
+    # -----------------------------------------------------------------------
+    # Appel du rôle system_baseline
+    # Toute la logique est dans roles/system_baseline/tasks/main.yml
+    # -----------------------------------------------------------------------
+    - role: system_baseline
+
+  post_tasks:
+    # -------------------------------------------------------------------------
+    # Résumé final avec les informations du rapport généré
+    # -------------------------------------------------------------------------
+    - name: "🎉 Baseline Windows Server — Terminé avec succès !"
+      ansible.builtin.debug:
+        msg:
+          - "================================================================"
+          - " ✅ Configuration baseline appliquée avec succès !"
+          - "================================================================"
+          - " Hôte          : {{ ansible_hostname }}"
+          - " Utilisateur   : {{ baseline_admin_username }}"
+          - " Dossier       : {{ baseline_automation_folder }}"
+          - " Rapport       : {{ baseline_automation_folder }}\\system-report.txt"
+          - "================================================================"
+          - " Outils installés :"
+          - "{% for pkg in baseline_choco_packages %}   - {{ pkg }}{% endfor %}"
+          - "================================================================"

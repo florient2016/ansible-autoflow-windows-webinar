@@ -1,0 +1,63 @@
+# =============================================================================
+# controller/job-templates/02-windows-iis-management.yml
+# Définition du Job Template AAP — Projet 2 : Windows IIS Management
+# =============================================================================
+
+---
+name: "02 - Windows IIS Management"
+
+description: |
+  Projet 2 du webinar AAP Windows.
+  Gestion complète d'IIS (Internet Information Services) :
+  - Vérification de l'état d'IIS
+  - Désinstallation si présent (force_reinstall)
+  - Réinstallation propre avec composants Web
+  - Démarrage et configuration du service
+  - Déploiement d'une page web personnalisée via template Jinja2
+  - Validation HTTP du site
+
+job_type: run
+
+inventory: "Windows Dev Inventory"
+
+project: "AAP Windows Webinar"
+
+playbook: "projects/windows-iis-management/playbook.yml"
+
+credentials:
+  - "Windows Machine Credential"
+
+verbosity: 1
+
+forks: 5
+
+# Timeout plus long car l'installation IIS peut prendre du temps
+timeout: 600
+
+diff_mode: true    # Activer le diff pour voir les changements de fichiers (page HTML)
+
+use_fact_cache: false
+
+# Variables configurables via l'interface AAP au lancement
+extra_vars: |
+  iis_site_name: "Default Web Site"
+  iis_site_port: 80
+  iis_site_root: "C:\\inetpub\\wwwroot"
+  iis_page_title: "🚀 Ansible AAP — Webinar Windows"
+  iis_page_message: "IIS déployé et configuré automatiquement par Ansible Automation Platform !"
+  iis_force_reinstall: true
+
+labels:
+  - windows
+  - iis
+  - web
+  - webinar
+
+# Permettre la surcharge des variables au lancement (démo interactive)
+ask_variables_on_launch: true
+ask_inventory_on_launch: false
+ask_credential_on_launch: false
+ask_verbosity_on_launch: false
+ask_limit_on_launch: true
+
+allow_simultaneous: false

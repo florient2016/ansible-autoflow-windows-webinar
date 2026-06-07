@@ -1,0 +1,49 @@
+# =============================================================================
+# inventories/dev/group_vars/windows.yml
+# Variables appliquées à tous les hôtes du groupe [windows]
+# =============================================================================
+# Ces variables sont automatiquement chargées pour tous les hôtes Windows.
+# Elles centralisent la configuration de connexion WinRM et les paramètres
+# globaux communs à tous les projets de ce repository.
+# =============================================================================
+
+---
+# ---------------------------------------------------------------------------
+# Configuration de connexion WinRM — reprise depuis hosts.yml pour référence
+# Dans AAP, ces variables sont injectées par les Credentials et l'inventaire.
+# ---------------------------------------------------------------------------
+ansible_connection: winrm
+ansible_winrm_transport: ntlm
+ansible_winrm_port: 5985
+ansible_winrm_scheme: http
+ansible_winrm_server_cert_validation: ignore
+ansible_shell_type: powershell
+
+# ---------------------------------------------------------------------------
+# Paramètres de timeout WinRM
+# Augmenter si les opérations longues (install IIS, Chocolatey) échouent
+# ---------------------------------------------------------------------------
+ansible_winrm_operation_timeout_sec: 120
+ansible_winrm_read_timeout_sec: 150
+
+# ---------------------------------------------------------------------------
+# Configuration de l'encodage PowerShell
+# Nécessaire pour éviter les problèmes d'encodage avec les caractères spéciaux
+# ---------------------------------------------------------------------------
+ansible_winrm_message_encryption: never     # auto, always, never (lab)
+
+# ---------------------------------------------------------------------------
+# Variables globales partagées entre les projets
+# ---------------------------------------------------------------------------
+
+# Répertoire de travail Ansible sur le serveur Windows
+windows_automation_base_dir: 'C:\Automation'
+
+# Préfixe pour les objets créés par Ansible (logs, fichiers, users)
+windows_automation_prefix: "ansible_"
+
+# Niveau de verbosité des logs (pour les rapports générés)
+windows_log_level: "INFO"
+
+# Zone de temps du serveur cible (pour les rapports horodatés)
+windows_timezone: "Romance Standard Time"   # Europe/Paris équivalent Windows

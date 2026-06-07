@@ -1,0 +1,49 @@
+# =============================================================================
+# roles/iis_management/vars/main.yml
+# Variables fixes du rôle iis_management (priorité haute)
+# =============================================================================
+# Ces variables ont une priorité HAUTE et ne devraient pas être surchargées
+# depuis l'extérieur. Elles définissent des constantes techniques du rôle.
+#
+# Pour les variables configurables par l'utilisateur, voir defaults/main.yml
+# =============================================================================
+
+---
+# ---------------------------------------------------------------------------
+# Services Windows liés à IIS
+# ---------------------------------------------------------------------------
+
+# Nom du service principal IIS (World Wide Web Publishing Service)
+iis_service_name: "W3SVC"
+
+# Nom du service de gestion IIS
+iis_admin_service_name: "IISADMIN"
+
+# ---------------------------------------------------------------------------
+# Chemins système IIS
+# ---------------------------------------------------------------------------
+
+# Répertoire d'installation IIS
+iis_install_dir: 'C:\Windows\System32\inetsrv'
+
+# Outil de configuration en ligne de commande IIS
+iis_appcmd_path: 'C:\Windows\System32\inetsrv\appcmd.exe'
+
+# Journal des accès IIS
+iis_log_dir: 'C:\inetpub\logs\LogFiles'
+
+# ---------------------------------------------------------------------------
+# Paramètres de validation
+# ---------------------------------------------------------------------------
+
+# Timeout pour la vérification HTTP (secondes)
+iis_http_check_timeout: 30
+
+# Nombre de tentatives de vérification HTTP
+iis_http_check_retries: 5
+
+# Délai entre chaque tentative (secondes)
+iis_http_check_delay: 5
+
+# Code de retour HTTP attendu
+iis_expected_http_code: 200

@@ -1,0 +1,86 @@
+# =============================================================================
+# controller/job-templates/01-windows-ping-test.yml
+# Définition du Job Template AAP — Projet 1 : Windows Ping Test
+# =============================================================================
+# Ce fichier peut être utilisé avec :
+#   - awx.awx collection pour importer le template via playbook
+#   - ansible-controller CLI (anciennement tower-cli)
+#   - Référence pour configuration manuelle dans l'interface AAP
+#
+# Pour importer via collection awx.awx :
+#   ansible-playbook -i localhost, import-job-templates.yml
+# =============================================================================
+
+---
+# Définition du Job Template pour l'Automation Controller
+name: "01 - Windows Ping Test"
+
+# Description affichée dans l'interface AAP
+description: |
+  Projet 1 du webinar AAP Windows.
+  Vérifie la connectivité WinRM vers les serveurs Windows cibles.
+  Exécute un win_ping et collecte les informations système de base.
+
+# Type de job : run (exécution), check (dry-run), scan
+job_type: run
+
+# Inventaire à utiliser (nom ou ID dans AAP)
+# ⚠️ Adapter au nom exact de votre inventaire dans AAP
+inventory: "Windows Dev Inventory"
+
+# Projet AAP (nom du projet qui pointe vers ce repository GitHub)
+project: "AAP Windows Webinar"
+
+# Chemin du playbook dans le repository
+playbook: "projects/windows-ping-test/playbook.yml"
+
+# Credentials à utiliser (nom ou ID dans AAP)
+# ⚠️ Adapter au nom exact de votre credential Windows dans AAP
+credentials:
+  - "Windows Machine Credential"
+
+# Niveau de verbosité des logs
+# 0=Normal, 1=Verbose, 2=More Verbose, 3=Debug, 4=Connection Debug, 5=WinRM Debug
+verbosity: 1
+
+# Nombre de forks (exécutions parallèles)
+forks: 5
+
+# Timeout d'exécution en secondes (0 = pas de limite)
+timeout: 300
+
+# Activer le diff pour voir les changements
+diff_mode: false
+
+# Collecter les facts (géré par le playbook avec gather_facts: true)
+use_fact_cache: false
+
+# Variables supplémentaires (format YAML)
+# Ces variables sont injectées dans le playbook
+extra_vars: |
+  ping_retries: 3
+  ping_delay: 5
+
+# Options de notification (configurer selon votre setup AAP)
+# notification_templates_started: []
+# notification_templates_success: []
+# notification_templates_error: []
+
+# Labels pour organisation dans AAP
+labels:
+  - windows
+  - connectivity
+  - webinar
+
+# Permettre le lancement avec prompt (override des variables au lancement)
+ask_variables_on_launch: false
+ask_inventory_on_launch: false
+ask_credential_on_launch: false
+ask_verbosity_on_launch: false
+ask_tags_on_launch: false
+ask_skip_tags_on_launch: false
+ask_job_type_on_launch: false
+ask_limit_on_launch: true    # Permet de cibler un sous-ensemble d'hôtes
+
+# Concurrent jobs autorisés
+allow_simultaneous: false

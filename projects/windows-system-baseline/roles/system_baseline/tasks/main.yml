@@ -1,0 +1,230 @@
+# =============================================================================
+# roles/system_baseline/tasks/main.yml
+# Tâches du rôle de configuration baseline Windows Server
+# =============================================================================
+
+---
+# ===========================================================================
+# SECTION 1 : Gestion de l'utilisateur local d'automatisation
+# ===========================================================================
+
+- name: "👤 [Baseline] Créer l'utilisateur local '{{ baseline_admin_username }}'"
+  ansible.windows.win_user:
+    name: "{{ baseline_admin_username }}"
+    # IMPORTANT : En production, utiliser Ansible Vault ou AAP Credentials
+    # pour stocker le mot de passe — ne JAMAIS stocker en clair dans git !
+    password: "{{ baseline_admin_password }}"
+    password_never_expires: true    # Compte de service — pas d'expiration
+    account_disabled: false
+    groups:
+      - Administrators              # Membre du groupe Administrateurs locaux
+    description: "Compte de service Ansible Automation Platform"
+    state: present
+  register: user_result
+  # Note de sécurité : no_log empêche l'affichage du mot de passe dans les logs
+  no_log: true
+
+- name: "📋 [Baseline] Statut création utilisateur"
+  ansible.builtin.debug:
+    msg: "Utilisateur '{{ baseline_admin_username }}' : {{ 'créé' if user_result.changed else 'déjà existant' }}"
+
+# ===========================================================================
+# SECTION 2 : Création du répertoire de travail Ansible
+# ===========================================================================
+
+- name: "📁 [Baseline] Créer le répertoire d'automatisation '{{ baseline_automation_folder }}'"
+  ansible.windows.win_file:
+    path: "{{ baseline_automation_folder }}"
+    state: directory
+
+- name: "📁 [Baseline] Créer les sous-répertoires de travail"
+  ansible.windows.win_file:
+    path: "{{ baseline_automation_folder }}\\{{ item }}"
+    state: directory
+  loop:
+    - logs          # Journaux d'exécution Ansible
+    - scripts       # Scripts PowerShell personnalisés
+    - reports       # Rapports générés automatiquement
+    - backups       # Sauvegardes de configuration
+
+- name: "🔐 [Baseline] Configurer les permissions sur le répertoire d'automatisation"
+  ansible.windows.win_acl:
+    path: "{{ baseline_automation_folder }}"
+    user: "{{ baseline_admin_username }}"
+    rights: FullControl
+    type: allow
+    inherit: ContainerInherit, ObjectInherit
+    propagation: None
+    state: present
+
+# ===========================================================================
+# SECTION 3 : Installation de Chocolatey
+# ===========================================================================
+
+- name: "🍫 [Baseline] Vérifier si Chocolatey est déjà installé"
+  ansible.windows.win_command:
+    cmd: choco --version
+  register: choco_check
+  failed_when: false      # Ne pas échouer si choco n'est pas installé
+  changed_when: false
+
+- name: "📋 [Baseline] État de Chocolatey"
+  ansible.builtin.debug:
+    msg: "Chocolatey {{ 'déjà installé (v' + choco_check.stdout | trim + ')' if choco_check.rc == 0 else 'non installé — installation en cours' }}"
+
+- name: "🍫 [Baseline] Installer Chocolatey (si absent)"
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: present
+  when: choco_check.rc != 0
+  register: choco_install
+
+- name: "🔄 [Baseline] Mettre à jour Chocolatey vers la dernière version"
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: latest
+  when: baseline_update_chocolatey | bool
+
+# ===========================================================================
+# SECTION 4 : Installation des outils de base via Chocolatey
+# ===========================================================================
+
+- name: "🛠️ [Baseline] Installer les outils de base via Chocolatey"
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ baseline_choco_packages }}"
+  register: tools_install
+  # Note : L'installation de chaque paquet peut prendre du temps
+  # Augmenter le timeout si nécessaire
+
+- name: "📋 [Baseline] Résumé des installations Chocolatey"
+  ansible.builtin.debug:
+    msg:
+      - "Paquets installés/vérifiés :"
+      - "{% for result in tools_install.results %}  - {{ result.item }}: {{ 'installé' if result.changed else 'déjà présent' }}{% endfor %}"
+
+# ===========================================================================
+# SECTION 5 : Configuration des règles Firewall Windows
+# ===========================================================================
+
+- name: "🔥 [Baseline] Activer les règles firewall — Ping ICMP (diagnostic réseau)"
+  community.windows.win_firewall_rule:
+    name: "Ansible - ICMP Echo Request"
+    direction: in
+    action: allow
+    protocol: icmpv4
+    icmp_type_code:
+      - "8:*"              # Echo request
+    description: "Autorise les pings ICMP pour le diagnostic réseau — Géré par Ansible"
+    enabled: true
+    state: present
+
+- name: "🔥 [Baseline] Activer les règles firewall — WinRM HTTP (Ansible)"
+  community.windows.win_firewall_rule:
+    name: "Ansible - WinRM HTTP"
+    direction: in
+    action: allow
+    protocol: tcp
+    localport: "5985"
+    description: "WinRM HTTP pour Ansible Automation Platform — Géré par Ansible"
+    enabled: true
+    state: present
+
+- name: "🔥 [Baseline] Activer les règles firewall — WinRM HTTPS (Ansible Sécurisé)"
+  community.windows.win_firewall_rule:
+    name: "Ansible - WinRM HTTPS"
+    direction: in
+    action: allow
+    protocol: tcp
+    localport: "5986"
+    description: "WinRM HTTPS sécurisé pour Ansible — Géré par Ansible"
+    enabled: true
+    state: present
+
+- name: "🔥 [Baseline] Activer les règles firewall — RDP (gestion à distance)"
+  community.windows.win_firewall_rule:
+    name: "Ansible - Remote Desktop"
+    direction: in
+    action: allow
+    protocol: tcp
+    localport: "3389"
+    description: "Bureau à distance pour l'administration — Géré par Ansible"
+    enabled: "{{ baseline_enable_rdp_firewall }}"
+    state: present
+
+- name: "📋 [Baseline] Lister les règles firewall Ansible créées"
+  ansible.windows.win_shell: |
+    Get-NetFirewallRule |
+      Where-Object { $_.DisplayName -like "Ansible*" } |
+      Select-Object DisplayName, Enabled, Direction, Action |
+      Format-Table -AutoSize |
+      Out-String
+  register: firewall_rules_list
+  changed_when: false
+
+- name: "🔥 [Baseline] Règles firewall actives"
+  ansible.builtin.debug:
+    msg: "{{ firewall_rules_list.stdout_lines }}"
+
+# ===========================================================================
+# SECTION 6 : Génération du rapport système
+# ===========================================================================
+
+- name: "📊 [Baseline] Collecter les informations système pour le rapport"
+  ansible.windows.win_shell: |
+    # Informations CPU
+    $cpu = Get-CimInstance -ClassName Win32_Processor |
+      Select-Object Name, NumberOfCores, NumberOfLogicalProcessors
+
+    # Informations disque
+    $disks = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" |
+      Select-Object DeviceID,
+        @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}},
+        @{N='FreeGB';E={[math]::Round($_.FreeSpace/1GB,2)}},
+        @{N='UsedPct';E={[math]::Round((($_.Size - $_.FreeSpace)/$_.Size)*100,1)}}
+
+    # Informations réseau
+    $network = Get-NetIPAddress -AddressFamily IPv4 |
+      Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } |
+      Select-Object InterfaceAlias, IPAddress, PrefixLength
+
+    # Logiciels installés
+    $software = Get-CimInstance -ClassName Win32_Product |
+      Select-Object Name, Version |
+      Sort-Object Name
+
+    # Services en cours d'exécution
+    $services = Get-Service |
+      Where-Object { $_.Status -eq "Running" } |
+      Select-Object Name, DisplayName |
+      Sort-Object Name
+
+    # Retourner en JSON pour traitement Ansible
+    @{
+      cpu      = $cpu
+      disks    = $disks
+      network  = $network
+      os       = (Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber, OSArchitecture)
+      uptime   = (Get-Date) - (gcim Win32_OperatingSystem).LastBootUpTime
+    } | ConvertTo-Json -Depth 3
+  register: system_info_raw
+  changed_when: false
+
+- name: "📄 [Baseline] Générer le rapport système dans {{ baseline_automation_folder }}"
+  ansible.windows.win_template:
+    src: system-report.txt.j2
+    dest: "{{ baseline_automation_folder }}\\reports\\system-report.txt"
+  vars:
+    # Parsing du JSON collecté précédemment
+    system_info: "{{ system_info_raw.stdout | from_json }}"
+
+- name: "✅ [Baseline] Afficher le contenu du rapport généré"
+  ansible.windows.win_shell: |
+    Get-Content "{{ baseline_automation_folder }}\reports\system-report.txt"
+  register: report_content
+  changed_when: false
+
+- name: "📋 [Baseline] Rapport système"
+  ansible.builtin.debug:
+    msg: "{{ report_content.stdout_lines }}"

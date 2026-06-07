@@ -1,0 +1,129 @@
+# =============================================================================
+# projects/windows-ping-test/playbook.yml
+# Projet 1 : Test de connectivité Windows via WinRM
+# =============================================================================
+# Ce playbook vérifie que Ansible peut établir une connexion WinRM vers le
+# serveur Windows cible et que les modules Windows sont fonctionnels.
+#
+# Modules utilisés :
+#   - ansible.windows.win_ping    : Test de connectivité de base
+#   - ansible.windows.win_command : Exécution de commandes PowerShell
+#   - ansible.windows.win_shell   : Exécution de scripts PowerShell
+#
+# Usage :
+#   ansible-playbook -i inventories/dev/hosts.yml \
+#     projects/windows-ping-test/playbook.yml
+#
+# Dans Autoflow: Lancer le Job Template "01 - Windows Ping Test"
+# =============================================================================
+
+---
+- name: "Test de connectivité Windows"
+  hosts: all
+  gather_facts: true    # Collecte des facts Windows (OS, RAM, CPU...)
+
+  vars:
+    # Nombre de tentatives de ping avant d'échouer
+    ping_retries: 3
+    # Délai entre chaque tentative (secondes)
+    ping_delay: 5
+
+  tasks:
+
+    # -------------------------------------------------------------------------
+    # ÉTAPE 1 : Test de connectivité basique via win_ping
+    # win_ping est l'équivalent Windows du module ping Linux.
+    # Il teste la connexion WinRM et renvoie "pong" si tout fonctionne.
+    # -------------------------------------------------------------------------
+    - name: "✅ Test de connectivité WinRM (win_ping)"
+      ansible.windows.win_ping:
+      register: ping_result
+      retries: "{{ ping_retries }}"
+      delay: "{{ ping_delay }}"
+      until: ping_result is succeeded
+
+    - name: "📋 Afficher le résultat du ping"
+      ansible.builtin.debug:
+        msg: "Réponse win_ping : {{ ping_result.ping }}"
+
+    # -------------------------------------------------------------------------
+    # ÉTAPE 2 : Collecte et affichage des informations système
+    # Les facts Windows sont riches : OS, version, hostname, IP, RAM...
+    # gather_facts: true les collecte automatiquement au début du play.
+    # -------------------------------------------------------------------------
+    - name: "📊 Afficher les informations système collectées"
+      ansible.builtin.debug:
+        msg:
+          - "Hostname         : {{ ansible_hostname }}"
+          - "OS               : {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture     : {{ ansible_architecture }}"
+          - "RAM totale       : {{ ansible_memtotal_mb }} MB"
+          - "Adresse IP       : {{ ansible_ip_addresses | join(', ') }}"
+          - "Domaine          : {{ ansible_domain }}"
+          - "PowerShell vers. : {{ ansible_powershell_version }}"
+
+    # -------------------------------------------------------------------------
+    # ÉTAPE 3 : Test d'exécution de commandes PowerShell
+    # Vérifie que Ansible peut exécuter des commandes PowerShell sur l'hôte.
+    # win_command exécute une commande sans shell (plus sécurisé que win_shell).
+    # -------------------------------------------------------------------------
+    - name: "💻 Exécuter une commande PowerShell de test"
+      ansible.windows.win_command:
+        cmd: powershell.exe -Command "Write-Output 'Hello from Autoflow Automation Platform on Windows!'"
+      register: cmd_result
+      changed_when: false    # Lecture seule — n'induit pas de changement
+
+    - name: "📋 Afficher le résultat de la commande"
+      ansible.builtin.debug:
+        msg: "Sortie PowerShell : {{ cmd_result.stdout | trim }}"
+
+    # -------------------------------------------------------------------------
+    # ÉTAPE 4 : Test d'exécution de scripts PowerShell (win_shell)
+    # win_shell exécute via un shell — utile pour les pipelines et redirections.
+    # -------------------------------------------------------------------------
+    - name: "📝 Collecter les informations réseau via PowerShell"
+      ansible.windows.win_shell: |
+        $adapters = Get-NetIPAddress -AddressFamily IPv4 |
+          Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } |
+          Select-Object InterfaceAlias, IPAddress, PrefixLength
+        $adapters | ForEach-Object {
+          Write-Output "$($_.InterfaceAlias) : $($_.IPAddress)/$($_.PrefixLength)"
+        }
+      register: network_info
+      changed_when: false
+
+    - name: "🌐 Afficher les interfaces réseau"
+      ansible.builtin.debug:
+        msg: "{{ network_info.stdout_lines }}"
+
+    # -------------------------------------------------------------------------
+    # ÉTAPE 5 : Vérification du service WinRM
+    # Confirme que le service WinRM est en cours d'exécution sur la cible.
+    # -------------------------------------------------------------------------
+    - name: "🔍 Vérifier que le service WinRM est actif"
+      ansible.windows.win_service:
+        name: WinRM
+      register: winrm_service
+      changed_when: false    # Mode check — pas de modification
+
+    - name: "📋 Statut du service WinRM"
+      ansible.builtin.debug:
+        msg:
+          - "Service WinRM   : {{ winrm_service.name }}"
+          - "État            : {{ winrm_service.state }}"
+          - "Démarrage auto  : {{ winrm_service.start_mode }}"
+
+    # -------------------------------------------------------------------------
+    # ÉTAPE 6 : Résumé du test de connectivité
+    # -------------------------------------------------------------------------
+    - name: "🎉 Résumé — Test de connectivité réussi !"
+      ansible.builtin.debug:
+        msg:
+          - "======================================================"
+          - " ✅ Connexion WinRM établie avec succès !"
+          - "======================================================"
+          - " Hôte      : {{ inventory_hostname }}"
+          - " Ping      : {{ ping_result.ping }}"
+          - " OS        : {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - " Hostname  : {{ ansible_hostname }}"
+          - "======================================================"

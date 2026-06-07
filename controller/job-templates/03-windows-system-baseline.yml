@@ -1,0 +1,67 @@
+# =============================================================================
+# controller/job-templates/03-windows-system-baseline.yml
+# Définition du Job Template AAP — Projet 3 : Windows System Baseline
+# =============================================================================
+
+---
+name: "03 - Windows System Baseline"
+
+description: |
+  Projet 3 du webinar AAP Windows.
+  Configure une base système minimale sur Windows Server :
+  - Création du compte de service automation_admin
+  - Création de C:\Automation avec sous-dossiers
+  - Installation de Chocolatey
+  - Installation des outils : git, notepadplusplus, 7zip
+  - Configuration des règles firewall (WinRM, ICMP, RDP)
+  - Génération d'un rapport système dans C:\Automation\reports\system-report.txt
+
+job_type: run
+
+inventory: "Windows Dev Inventory"
+
+project: "AAP Windows Webinar"
+
+playbook: "projects/windows-system-baseline/playbook.yml"
+
+credentials:
+  - "Windows Machine Credential"
+
+verbosity: 1
+
+forks: 5
+
+# Timeout élevé — Chocolatey et les packages peuvent prendre du temps
+timeout: 900
+
+diff_mode: true
+
+use_fact_cache: false
+
+# Variables configurables
+# ⚠️ baseline_admin_password doit être géré via Credentials AAP en production
+extra_vars: |
+  baseline_admin_username: "automation_admin"
+  baseline_automation_folder: "C:\\Automation"
+  baseline_install_chocolatey: true
+  baseline_update_chocolatey: false
+  baseline_choco_packages:
+    - git
+    - notepadplusplus
+    - 7zip
+  baseline_enable_rdp_firewall: true
+
+labels:
+  - windows
+  - baseline
+  - security
+  - chocolatey
+  - webinar
+
+ask_variables_on_launch: true
+ask_inventory_on_launch: false
+ask_credential_on_launch: false
+ask_verbosity_on_launch: false
+ask_limit_on_launch: true
+
+allow_simultaneous: false

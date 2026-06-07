@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ iis_page_title }}</title>
+    <style>
+        /* Style minimaliste et professionnel pour la démonstration */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e0e0;
+        }
+
+        .container {
+            text-align: center;
+            padding: 3rem;
+            max-width: 800px;
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #e94560;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a8b2d8;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1rem 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .message {
+            font-size: 1.4rem;
+            color: #64ffda;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: #a8b2d8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #64ffda;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            color: #e94560;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0.3rem;
+        }
+
+        .ansible-badge {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: #64ffda;
+            color: #64ffda;
+        }
+
+        footer {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>{{ iis_page_title }}</h1>
+        <p class="subtitle">Déployé automatiquement par Autoflow Automation Platform</p>
+
+        <div class="card">
+            <p class="message">{{ iis_page_message }}</p>
+
+            <div>
+                <span class="badge">IIS {{ iis_iis_version | default('10.0') }}</span>
+                <span class="badge ansible-badge">Ansible ✓</span>
+                <span class="badge ansible-badge">AAP ✓</span>
+                <span class="badge">Windows Server ✓</span>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Serveur</div>
+                    <div class="info-value">{{ ansible_hostname }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Système d'exploitation</div>
+                    <div class="info-value">{{ ansible_distribution }} {{ ansible_distribution_version | default('') }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Site IIS</div>
+                    <div class="info-value">{{ iis_site_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Port</div>
+                    <div class="info-value">{{ iis_site_port }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Répertoire racine</div>
+                    <div class="info-value">{{ iis_site_root }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Déployé le</div>
+                    <div class="info-value">{{ ansible_date_time.date }} {{ ansible_date_time.time }}</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Webinar Autoflow Automation Platform — Automatisation Windows Server</p>
+            <p>🤖 Cette page a été générée automatiquement par un playbook Ansible</p>
+        </footer>
+    </div>
+</body>
+</html>

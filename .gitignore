@@ -1,0 +1,68 @@
+# =============================================================================
+# .gitignore — Fichiers à exclure du repository
+# =============================================================================
+
+# Fichiers de vault Ansible (contiennent des secrets)
+*.vault
+vault-password.txt
+.vault_pass
+.vault_password
+
+# Variables sensibles locales
+**/vars/secrets.yml
+**/vars/local.yml
+local_vars.yml
+extra_vars.yml
+
+# Fichiers de retry Ansible
+*.retry
+
+# Logs Ansible
+*.log
+logs/
+
+# Cache Ansible
+.ansible/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environnements virtuels Python
+venv/
+.venv/
+env/
+
+# Fichiers IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*.orig
+tmp/
+
+# Inventaires locaux (contiennent potentiellement des IPs/credentials)
+inventories/local/
+inventories/prod/
+hosts.local
+
+# Fichiers de test locaux
+tests/
+molecule/
+
+# Collections installées localement (gérées par requirements.yml)
+collections/

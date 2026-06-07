@@ -1,0 +1,61 @@
+# =============================================================================
+# roles/system_baseline/defaults/main.yml
+# Variables par défaut du rôle system_baseline
+# =============================================================================
+# Ces variables peuvent être surchargées via Extra Variables dans AAP.
+# Le mot de passe DOIT être géré via Ansible Vault ou AAP Credentials.
+# =============================================================================
+
+---
+# ---------------------------------------------------------------------------
+# Utilisateur local d'automatisation
+# ---------------------------------------------------------------------------
+
+# Nom du compte de service Ansible
+baseline_admin_username: "automation_admin"
+
+# Mot de passe du compte
+# ⚠️  IMPORTANT : Ne JAMAIS stocker en clair dans git !
+# ✅  En production : utiliser Ansible Vault ou AAP Credentials
+# ✅  Exemple avec Vault : ansible-vault encrypt_string 'MonMotDePasse' --name 'baseline_admin_password'
+baseline_admin_password: "Ansible@Webinar2024!"   # ← Exemple uniquement — changer impérativement !
+
+# ---------------------------------------------------------------------------
+# Répertoire de travail Ansible
+# ---------------------------------------------------------------------------
+
+# Chemin du dossier principal de travail Ansible sur le serveur Windows
+baseline_automation_folder: 'C:\Automation'
+
+# ---------------------------------------------------------------------------
+# Chocolatey — Gestionnaire de paquets Windows
+# ---------------------------------------------------------------------------
+
+# Installer Chocolatey si absent
+baseline_install_chocolatey: true
+
+# Mettre à jour Chocolatey vers la dernière version
+baseline_update_chocolatey: false
+
+# ---------------------------------------------------------------------------
+# Paquets à installer via Chocolatey
+# Voir https://community.chocolatey.org/packages pour la liste complète
+# ---------------------------------------------------------------------------
+baseline_choco_packages:
+  - git               # Contrôle de version — indispensable pour AAP
+  - notepadplusplus   # Éditeur de texte avancé
+  - 7zip              # Compression/décompression d'archives
+
+# Paquets optionnels (décommenter pour activer)
+# baseline_choco_packages_optional:
+#   - vscode          # Visual Studio Code
+#   - python          # Python pour scripts
+#   - curl            # Outil HTTP en ligne de commande
+#   - jq              # Processeur JSON
+
+# ---------------------------------------------------------------------------
+# Firewall Windows
+# ---------------------------------------------------------------------------
+
+# Activer la règle firewall RDP (Bureau à distance)
+baseline_enable_rdp_firewall: true

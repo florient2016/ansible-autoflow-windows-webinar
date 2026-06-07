@@ -1,0 +1,156 @@
+# =============================================================================
+# controller/workflow-template.yml
+# Workflow Template — Déploiement complet Windows Server
+# =============================================================================
+# Ce Workflow Template orchestre l'exécution des 3 projets dans l'ordre.
+# Il utilise la logique de succès/échec pour contrôler le flux :
+#
+#   [01 Ping Test]
+#        │
+#        ├─ On Success ──► [02 IIS Management]
+#        │                       │
+#        │                       ├─ On Success ──► [03 System Baseline]
+#        │                       │                       │
+#        │                       │                       └─ On Success ──► ✅ Succès complet
+#        │                       └─ On Failure  ──► ❌ Arrêt (notifier)
+#        └─ On Failure  ──► ❌ Arrêt (WinRM inaccessible)
+#
+# Ce fichier sert de référence pour la configuration manuelle dans AAP
+# ou pour l'import via la collection awx.awx.
+# =============================================================================
+
+---
+name: "🪟 Windows Server — Full Deployment Workflow"
+
+description: |
+  Workflow complet de déploiement Windows Server.
+  Exécute les 3 projets dans l'ordre avec gestion des succès/échecs :
+    1. Windows Ping Test        — Validation de la connectivité
+    2. Windows IIS Management   — Déploiement du serveur Web
+    3. Windows System Baseline  — Configuration système de base
+
+  En cas d'échec du Ping Test, le workflow s'arrête immédiatement.
+  En cas d'échec d'IIS ou Baseline, une notification est envoyée.
+
+# Inventaire par défaut (peut être surchargé au lancement)
+inventory: "Windows Dev Inventory"
+
+# Permettre la surcharge au lancement
+ask_inventory_on_launch: true
+ask_variables_on_launch: false
+ask_labels_on_launch: false
+ask_limit_on_launch: true
+
+labels:
+  - windows
+  - workflow
+  - webinar
+  - full-deployment
+
+# Variables globales du workflow (passées à tous les nœuds)
+extra_vars: |
+  webinar_mode: true
+  webinar_name: "AAP Windows Webinar"
+
+# ---------------------------------------------------------------------------
+# Définition des nœuds du workflow
+# ---------------------------------------------------------------------------
+workflow_nodes:
+
+  # -------------------------------------------------------------------------
+  # Nœud 1 : Test de connectivité (point d'entrée du workflow)
+  # -------------------------------------------------------------------------
+  - identifier: "node-01-ping-test"
+    unified_job_template:
+      name: "01 - Windows Ping Test"
+      type: job_template
+    # Pas de nœuds parents — c'est le point d'entrée
+    related:
+      success_nodes:
+        - "node-02-iis-management"     # Si ping OK → lancer IIS
+      failure_nodes:
+        - "node-error-handler"          # Si ping KO → erreur critique
+      always_nodes: []
+
+  # -------------------------------------------------------------------------
+  # Nœud 2 : Gestion IIS (exécuté si Ping réussit)
+  # -------------------------------------------------------------------------
+  - identifier: "node-02-iis-management"
+    unified_job_template:
+      name: "02 - Windows IIS Management"
+      type: job_template
+    related:
+      success_nodes:
+        - "node-03-system-baseline"    # Si IIS OK → lancer Baseline
+      failure_nodes:
+        - "node-error-handler"          # Si IIS KO → notifier
+      always_nodes: []
+
+  # -------------------------------------------------------------------------
+  # Nœud 3 : System Baseline (exécuté si IIS réussit)
+  # -------------------------------------------------------------------------
+  - identifier: "node-03-system-baseline"
+    unified_job_template:
+      name: "03 - Windows System Baseline"
+      type: job_template
+    related:
+      success_nodes:
+        - "node-success-notification"   # Si Baseline OK → succès complet
+      failure_nodes:
+        - "node-error-handler"          # Si Baseline KO → notifier
+      always_nodes: []
+
+  # -------------------------------------------------------------------------
+  # Nœud de succès : Notification de fin de workflow réussi
+  # (optionnel — nécessite un Job Template de notification configuré)
+  # -------------------------------------------------------------------------
+  - identifier: "node-success-notification"
+    # Remplacer par un Job Template de notification réel si disponible
+    # unified_job_template:
+    #   name: "Send Success Notification"
+    #   type: job_template
+    # Pour la démo : utiliser un approval node ou simplement ne pas configurer
+    unified_job_template:
+      name: "01 - Windows Ping Test"    # Placeholder — remplacer par notification réelle
+      type: job_template
+
+  # -------------------------------------------------------------------------
+  # Nœud d'erreur : Gestion centralisée des erreurs
+  # (optionnel — nécessite un Job Template de gestion d'erreur)
+  # -------------------------------------------------------------------------
+  - identifier: "node-error-handler"
+    # unified_job_template:
+    #   name: "Send Error Notification"
+    #   type: job_template
+    unified_job_template:
+      name: "01 - Windows Ping Test"    # Placeholder — remplacer par notification d'erreur
+
+# ---------------------------------------------------------------------------
+# Schéma du workflow (référence visuelle)
+# ---------------------------------------------------------------------------
+#
+#  ┌─────────────────────────────────────────────────────────────────────┐
+#  │                    WORKFLOW VISUALIZER                              │
+#  ├─────────────────────────────────────────────────────────────────────┤
+#  │                                                                     │
+#  │  [START]                                                            │
+#  │     │                                                               │
+#  │     ▼                                                               │
+#  │  ┌──────────────────┐                                               │
+#  │  │ 01 - Ping Test   │──── FAIL ────► [Error Handler]               │
+#  │  └──────────────────┘                                               │
+#  │         │ SUCCESS                                                   │
+#  │         ▼                                                           │
+#  │  ┌──────────────────┐                                               │
+#  │  │ 02 - IIS Mgmt    │──── FAIL ────► [Error Handler]               │
+#  │  └──────────────────┘                                               │
+#  │         │ SUCCESS                                                   │
+#  │         ▼                                                           │
+#  │  ┌──────────────────┐                                               │
+#  │  │ 03 - Baseline    │──── FAIL ────► [Error Handler]               │
+#  │  └──────────────────┘                                               │
+#  │         │ SUCCESS                                                   │
+#  │         ▼                                                           │
+#  │  [✅ Déploiement complet réussi !]                                  │
+#  │                                                                     │
+#  └─────────────────────────────────────────────────────────────────────┘

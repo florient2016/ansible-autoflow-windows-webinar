@@ -1,0 +1,70 @@
+# =============================================================================
+# projects/windows-iis-management/playbook.yml
+# Projet 2 : Gestion complète d'IIS (Internet Information Services)
+# =============================================================================
+# Ce playbook gère le cycle de vie complet d'IIS :
+#   1. Vérification de l'état d'IIS
+#   2. Désinstallation si déjà présent (pour repartir proprement)
+#   3. Réinstallation propre d'IIS
+#   4. Démarrage et configuration du service
+#   5. Déploiement d'une page web personnalisée
+#   6. Vérification que le site répond correctement
+#
+# Ce playbook est IDEMPOTENT : l'exécuter plusieurs fois produit le même
+# résultat final sans effets indésirables.
+#
+# Usage :
+#   ansible-playbook -i inventories/dev/hosts.yml \
+#     projects/windows-iis-management/playbook.yml
+#
+# Avec variables personnalisées :
+#   ansible-playbook -i inventories/dev/hosts.yml \
+#     projects/windows-iis-management/playbook.yml \
+#     -e "iis_site_name=MonSite iis_page_title='Mon Application'"
+# =============================================================================
+
+---
+- name: "🌐 Gestion complète d'IIS"
+  hosts: all
+  gather_facts: true
+
+  # Chargement des variables par défaut du rôle
+  # Les variables peuvent être surchargées via Extra Variables dans AAP
+  vars:
+    # Activer/désactiver la désinstallation préalable d'IIS
+    # Mettre à false si vous souhaitez seulement s'assurer qu'IIS est installé
+    iis_force_reinstall: true
+
+  roles:
+    # -----------------------------------------------------------------------
+    # Appel du rôle iis_management
+    # Le rôle centralise toute la logique de gestion IIS.
+    # Les tâches sont dans roles/iis_management/tasks/main.yml
+    # -----------------------------------------------------------------------
+    - role: iis_management
+      # Les variables du rôle sont dans :
+      #   roles/iis_management/defaults/main.yml (valeurs par défaut)
+      #   roles/iis_management/vars/main.yml (variables fixes)
+      # Elles peuvent être surchargées ici ou via Extra Variables AAP :
+      # vars:
+      #   iis_site_name: "WebinarDemo"
+      #   iis_site_port: 80
+      #   iis_page_title: "Déployé par Ansible !"
+
+  post_tasks:
+    # -----------------------------------------------------------------------
+    # Résumé final après exécution du rôle
+    # -----------------------------------------------------------------------
+    - name: "🎉 Résumé — Gestion IIS terminée"
+      ansible.builtin.debug:
+        msg:
+          - "================================================================"
+          - " ✅ IIS configuré et opérationnel !"
+          - "================================================================"
+          - " Hôte        : {{ inventory_hostname }}"
+          - " Site        : {{ iis_site_name }}"
+          - " Port        : {{ iis_site_port }}"
+          - " URL         : http://{{ ansible_host }}:{{ iis_site_port }}"
+          - "================================================================"
+          - " Accédez à : http://{{ ansible_host }} pour voir la page web"
+          - "================================================================"

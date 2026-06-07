@@ -1,0 +1,51 @@
+# =============================================================================
+# roles/system_baseline/vars/main.yml
+# Variables techniques fixes du rôle system_baseline
+# =============================================================================
+
+---
+# ---------------------------------------------------------------------------
+# Chemins système Windows
+# ---------------------------------------------------------------------------
+
+# Répertoire de profil Chocolatey
+baseline_choco_install_path: 'C:\ProgramData\chocolatey'
+
+# Exécutable Chocolatey
+baseline_choco_exe: 'C:\ProgramData\chocolatey\bin\choco.exe'
+
+# ---------------------------------------------------------------------------
+# Groupes Windows pour l'utilisateur d'automatisation
+# ---------------------------------------------------------------------------
+baseline_user_groups:
+  - Administrators                        # Droits d'administration locale
+
+# ---------------------------------------------------------------------------
+# Sous-répertoires à créer dans baseline_automation_folder
+# ---------------------------------------------------------------------------
+baseline_subdirectories:
+  - logs       # Journaux Ansible
+  - scripts    # Scripts PowerShell
+  - reports    # Rapports générés
+  - backups    # Sauvegardes
+
+# ---------------------------------------------------------------------------
+# Règles Firewall à créer
+# ---------------------------------------------------------------------------
+baseline_firewall_rules:
+  - name: "Ansible - ICMP Echo Request"
+    description: "Ping ICMP pour diagnostic réseau"
+    protocol: icmpv4
+    enabled: true
+
+  - name: "Ansible - WinRM HTTP"
+    description: "WinRM HTTP (port 5985)"
+    protocol: tcp
+    localport: "5985"
+    enabled: true
+
+  - name: "Ansible - WinRM HTTPS"
+    description: "WinRM HTTPS sécurisé (port 5986)"
+    protocol: tcp
+    localport: "5986"
+    enabled: true
