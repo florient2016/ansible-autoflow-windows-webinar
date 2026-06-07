@@ -134,28 +134,70 @@
   ansible.windows.win_file:
     path: "{{ iis_site_root }}"
     state: directory
+
 # ---------------------------------------------------------------------------
-# ÉTAPE 8b : Créer le DefaultAppPool s'il n'existe pas
+# ÉTAPE 8b : Réparer la configuration IIS corrompue après réinstallation
+# ---------------------------------------------------------------------------
+- name: "🔧 [IIS] Réparer applicationHost.config"
+  ansible.windows.win_shell: |
+    # Arrêter W3SVC et WAS
+    Stop-Service W3SVC -Force -ErrorAction SilentlyContinue
+    Stop-Service WAS -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
+
+    $configPath = "$env:SystemRoot\System32\inetsrv\config\applicationHost.config"
+    $backupPath = "$env:SystemRoot\System32\inetsrv\config\applicationHost.config.bak"
+
+    # Sauvegarder si existant
+    if (Test-Path $configPath) {
+        Copy-Item $configPath $backupPath -Force
+        Remove-Item $configPath -Force
+        Write-Output "Config supprimee"
+    }
+
+    # Recréer depuis le template Microsoft
+    $templatePath = "$env:SystemRoot\System32\inetsrv\config\schema\applicationHost.config"
+    if (-not (Test-Path $templatePath)) {
+        $templatePath = "$env:SystemRoot\System32\inetsrv\config\applicationHost.config.default"
+    }
+
+    # Régénérer via aspnet_regiis ou directement via IIS
+    & "$env:SystemRoot\System32\inetsrv\appcmd.exe" restore config | Out-Null
+
+    # Redémarrer WAS (Windows Activation Service) — il gère les AppPools
+    Start-Service WAS
+    Start-Sleep -Seconds 5
+    Start-Service W3SVC
+    Start-Sleep -Seconds 3
+
+    Write-Output "IIS redémarre"
+  register: repair_result
+  changed_when: true
+
+- name: "📋 [IIS] Résultat réparation"
+  ansible.builtin.debug:
+    msg: "{{ repair_result.stdout_lines }}"
+
+# ---------------------------------------------------------------------------
+# ÉTAPE 8c : Créer le DefaultAppPool
 # ---------------------------------------------------------------------------
 - name: "⚙️ [IIS] Créer le DefaultAppPool"
   ansible.windows.win_shell: |
     Import-Module WebAdministration
+    Start-Sleep -Seconds 2
     if (-not (Test-Path "IIS:\AppPools\DefaultAppPool")) {
         New-WebAppPool -Name "DefaultAppPool"
-        Write-Output "AppPool cree : DefaultAppPool"
+        Write-Output "AppPool cree"
     } else {
-        Write-Output "AppPool deja existant : DefaultAppPool"
+        Write-Output "AppPool existant"
     }
   register: apppool_result
   changed_when: "'AppPool cree' in apppool_result.stdout"
 
-- name: "▶️ [IIS] Démarrer le DefaultAppPool"
-  ansible.windows.win_shell: |
-    Import-Module WebAdministration
-    Start-WebAppPool -Name "DefaultAppPool"
-    Write-Output "AppPool demarre"
-  changed_when: false
-  
+- name: "📋 [IIS] Résultat AppPool"
+  ansible.builtin.debug:
+    msg: "{{ apppool_result.stdout | trim }}"
+
 # ---------------------------------------------------------------------------
 # ÉTAPE 8 : Déploiement de la page HTML par défaut
 # On utilise un template Jinja2 pour générer une page HTML personnalisée.
