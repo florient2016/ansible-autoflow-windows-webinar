@@ -146,7 +146,7 @@
     src: index.html.j2          # Template Jinja2 dans le dossier templates/
     dest: "{{ iis_site_root }}\\index.html"
   register: page_deploy_result
-  #notify: Restart IIS Service   # Handler déclenché si le fichier change
+  notify: Restart IIS Service   # Handler déclenché si le fichier change
 
 # ---------------------------------------------------------------------------
 # ÉTAPE 9 : Configuration du site IIS par défaut

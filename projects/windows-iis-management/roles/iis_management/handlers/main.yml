@@ -1,0 +1,4 @@
+- name: Restart IIS Service
+  ansible.windows.win_service:
+    name: W3SVC
+    state: restarted
