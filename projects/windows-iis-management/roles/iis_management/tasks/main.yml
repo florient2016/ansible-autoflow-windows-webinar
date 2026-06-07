@@ -136,67 +136,71 @@
     state: directory
 
 # ---------------------------------------------------------------------------
-# ÉTAPE 8b : Réparer la configuration IIS corrompue après réinstallation
+# ÉTAPE 8b : Régénérer applicationHost.config depuis zéro
 # ---------------------------------------------------------------------------
-- name: "🔧 [IIS] Réparer applicationHost.config"
+- name: "🔧 [IIS] Régénérer applicationHost.config depuis zéro"
   ansible.windows.win_shell: |
-    # Arrêter W3SVC et WAS
+    # Arrêter tous les services IIS
     Stop-Service W3SVC -Force -ErrorAction SilentlyContinue
-    Stop-Service WAS -Force -ErrorAction SilentlyContinue
+    Stop-Service WAS   -Force -ErrorAction SilentlyContinue
+    Stop-Service WMSVC -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 3
 
-    $configPath = "$env:SystemRoot\System32\inetsrv\config\applicationHost.config"
-    $backupPath = "$env:SystemRoot\System32\inetsrv\config\applicationHost.config.bak"
+    $configDir = "$env:SystemRoot\System32\inetsrv\config"
+    $configFile = "$configDir\applicationHost.config"
 
-    # Sauvegarder si existant
-    if (Test-Path $configPath) {
-        Copy-Item $configPath $backupPath -Force
-        Remove-Item $configPath -Force
-        Write-Output "Config supprimee"
+    # Supprimer le fichier corrompu
+    if (Test-Path $configFile) {
+        Remove-Item $configFile -Force
+        Write-Output "Ancien config supprime"
     }
 
-    # Recréer depuis le template Microsoft
-    $templatePath = "$env:SystemRoot\System32\inetsrv\config\schema\applicationHost.config"
-    if (-not (Test-Path $templatePath)) {
-        $templatePath = "$env:SystemRoot\System32\inetsrv\config\applicationHost.config.default"
+    # Copier depuis le backup Windows (présent après installation IIS)
+    $sources = @(
+        "$configDir\applicationHost.config.default",
+        "$env:WinDir\system32\inetsrv\config\applicationHost.config.default",
+        "$env:WinDir\winsxs\amd64_microsoft-windows-iis-apphostconfig*\applicationHost.config"
+    )
+
+    $copied = $false
+    foreach ($src in $sources) {
+        $found = Get-Item $src -ErrorAction SilentlyContinue
+        if ($found) {
+            Copy-Item $found.FullName $configFile -Force
+            Write-Output "Config restaure depuis : $($found.FullName)"
+            $copied = $true
+            break
+        }
     }
 
-    # Régénérer via aspnet_regiis ou directement via IIS
-    & "$env:SystemRoot\System32\inetsrv\appcmd.exe" restore config | Out-Null
+    if (-not $copied) {
+        # Aucun backup trouvé — désinstaller/réinstaller IIS proprement via DISM
+        Write-Output "Aucun backup trouve — reinstallation DISM"
+        dism /online /disable-feature /featurename:IIS-WebServer /norestart
+        Start-Sleep -Seconds 5
+        dism /online /enable-feature /featurename:IIS-WebServer /all /norestart
+        Start-Sleep -Seconds 10
+    }
 
-    # Redémarrer WAS (Windows Activation Service) — il gère les AppPools
-    Start-Service WAS
+    # Redémarrer WAS puis W3SVC
+    Start-Service WAS   -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 5
-    Start-Service W3SVC
+    Start-Service W3SVC -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 3
 
-    Write-Output "IIS redémarre"
+    # Vérifier
+    if (Test-Path $configFile) {
+        Write-Output "CONFIG OK : $configFile"
+    } else {
+        Write-Output "CONFIG MANQUANT"
+        exit 1
+    }
   register: repair_result
   changed_when: true
 
-- name: "📋 [IIS] Résultat réparation"
+- name: "📋 [IIS] Résultat réparation config"
   ansible.builtin.debug:
     msg: "{{ repair_result.stdout_lines }}"
-
-# ---------------------------------------------------------------------------
-# ÉTAPE 8c : Créer le DefaultAppPool
-# ---------------------------------------------------------------------------
-- name: "⚙️ [IIS] Créer le DefaultAppPool"
-  ansible.windows.win_shell: |
-    Import-Module WebAdministration
-    Start-Sleep -Seconds 2
-    if (-not (Test-Path "IIS:\AppPools\DefaultAppPool")) {
-        New-WebAppPool -Name "DefaultAppPool"
-        Write-Output "AppPool cree"
-    } else {
-        Write-Output "AppPool existant"
-    }
-  register: apppool_result
-  changed_when: "'AppPool cree' in apppool_result.stdout"
-
-- name: "📋 [IIS] Résultat AppPool"
-  ansible.builtin.debug:
-    msg: "{{ apppool_result.stdout | trim }}"
 
 # ---------------------------------------------------------------------------
 # ÉTAPE 8 : Déploiement de la page HTML par défaut
