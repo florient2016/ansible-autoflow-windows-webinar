@@ -54,7 +54,7 @@
       - Web-Http-Errors     # Erreurs HTTP
       - Web-Static-Content  # Contenu statique
     state: absent
-    remove_payloads: false  # Conserver les binaires pour une réinstallation rapide
+    #remove_payloads: false  # Conserver les binaires pour une réinstallation rapide
   when:
     - iis_force_reinstall | bool
     - not iis_check_result.changed    # Seulement si IIS était déjà installé
